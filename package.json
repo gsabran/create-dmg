@@ -57,5 +57,9 @@
 		"ava": "^6.1.1",
 		"jest-image-snapshot": "^6.5.1",
 		"xo": "^0.56.0"
+	},
+	"ava": {
+		"serial": true,
+		"timeout": "30s"
 	}
 }

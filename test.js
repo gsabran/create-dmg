@@ -14,7 +14,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const assertVolumeIconMatchesSnapshot = (t, dmgPath) => {
 	// Mount the DMG and extract the volume icon
 	const existingVolumes = new Set(fs.readdirSync('/Volumes'));
-	spawnSync('hdiutil', ['mount', dmgPath]);
+	const mountResult = spawnSync('hdiutil', ['mount', dmgPath], { timeout: 10000 });
+
+	if (mountResult.status !== 0) {
+		throw new Error(`Failed to mount DMG: ${mountResult.stderr?.toString()}`);
+	}
+
 	const volumes = new Set(fs.readdirSync('/Volumes'));
 	const mountLocation = [...volumes].find(x => !existingVolumes.has(x));
 	t.truthy(mountLocation);
@@ -22,9 +27,14 @@ const assertVolumeIconMatchesSnapshot = (t, dmgPath) => {
 	const dirPath = path.dirname(dmgPath);
 	const iconPath = path.join(dirPath, 'VolumeIcon.icns');
 	fs.copyFileSync(dmgIconPath, iconPath);
-	spawnSync('hdiutil', ['unmount', path.join('/Volumes', mountLocation)]);
+	const unmountResult = spawnSync('hdiutil', ['unmount', '-force', path.join('/Volumes', mountLocation)], { timeout: 10000 });
+
+	if (unmountResult.status !== 0) {
+		throw new Error(`Failed to unmount ${mountLocation}: ${unmountResult.stderr?.toString()}`);
+	}
+
 	const pngPath = path.join(dirPath, 'VolumeIcon.png');
-	spawnSync('sips', ['-s', 'format', 'png', iconPath, '--out', pngPath]);
+	spawnSync('sips', ['-s', 'format', 'png', iconPath, '--out', pngPath], { timeout: 10000 });
 
 	// Compare the extracted icon to the snapshot
 	const image = fs.readFileSync(pngPath);
